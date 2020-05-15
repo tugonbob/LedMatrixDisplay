@@ -21,8 +21,6 @@ strip = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=.02, auto_write=Fals
 # 6 9  22 25
 # 7 8  23 24 39 40 55 56 71 72 87 88 103 104 119 120 135 136 151 152 167 168 183 184 199 200 215 216 231 232 247 248
 
-# also the top and bottom number is switched starting after 103 in the comment above ^
-
 char_dict = {
     'A':
     [[0,0,1],
