@@ -203,26 +203,6 @@ def nullChar():
     y += 1
     strip[ indexOf(x-3,y) ] = COLOR
 
-
-
-
-
-# converts a ledstrip index to a coord
-def coordOf(pos):
-    x = int(pos // 8)
-    if(x % 2 == 0):
-        y = int(pos % 8)
-    else:
-        y = int(8 - (pos % 8))
-    return (x,y)
-
-# converts a coord to a ledstrip index
-def indexOf(x,y):
-    if(x % 2 == 0):
-        return int((x * 8) + y)
-    else:
-        return int((x*8) + (7-y))
-
 #print str with color by calling individual letter function
 def print(str, color):
     global COLOR
@@ -282,6 +262,22 @@ rainbowPrint("LIVE")
 #strip[ indexOf(cursorx, cursory) ] = BLUE #just to keep track of where the cursor is
 #strip.show()
 """
+
+# converts a ledstrip index to a coord
+def coordOf(pos):
+    x = int(pos // 8)
+    if(x % 2 == 0):
+        y = int(pos % 8)
+    else:
+        y = int(8 - (pos % 8))
+    return (x,y)
+
+# converts a coord to a ledstrip index
+def indexOf(x,y):
+    if(x % 2 == 0):
+        return int((x * 8) + y)
+    else:
+        return int((x*8) + (7-y))
 
 # prints a single character at current current cursor position
 def print_char(char):
