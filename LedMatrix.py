@@ -4,6 +4,7 @@ import neopixel
 import board
 import time
 from characterDictionary import char_dict
+import Color
 
 pixel_pin = board.D18
 num_pixels = 256
@@ -23,6 +24,16 @@ strip = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=.02, auto_write=Fals
 # 7 8  23 24 39 40 55 56 71 72 87 88 103 104 119 120 135 136 151 152 167 168 183 184 199 200 215 216 231 232 247 248
         
 
+#colors
+RED = (255,0,0)
+GREEN = (0,255,0)
+BLUE = (0,0,255)
+YELLOW = (255,255,0)
+ORANGE = (255,50,0)
+CYAN = (0,255,255)
+PURPLE = (80,0,255)
+PINK = (255,0,100)
+        
 #color wheel
 def wheel(pos):
     # Input a value 0 to 255 to get a color value.
@@ -45,16 +56,6 @@ def wheel(pos):
         b = int(255 - pos * 3)
     return (r, g, b)
 
-#colors
-RED = (255,0,0)
-GREEN = (0,255,0)
-BLUE = (0,0,255)
-YELLOW = (255,255,0)
-ORANGE = (255,50,0)
-CYAN = (0,255,255)
-PURPLE = (80,0,255)
-PINK = (255,0,100)
-
 #global variables
 cursorx = 0
 cursory = 1
@@ -64,22 +65,10 @@ COLOR = RED
 MATRIX_HEIGHT = 8
 MATRIX_LENGTH = 32
 
-""" for me to copy paste
-'':
-    [[0,0,0,0],
-     [0,0,0,0],
-     [0,0,0,0],
-     [0,0,0,0],
-     [0,0,0,0],
-     [0,0,0,0]],
-"""
-
-    
-
 # converts a ledstrip index to a coord
-def coordOf(pos):
+def coord_of(pos):
     x = int(pos // 8)
-    if(isEven(x)):
+    if(is_even(x)):
         y = int(pos % 8)
     else:
         y = int(8 - (pos % 8))
@@ -89,8 +78,8 @@ def coordOf(pos):
 
 
 # converts a coord to a ledstrip index
-def indexOf(x,y):
-    if(isEven(x)):
+def index_of(x,y):
+    if(is_even(x)):
         return int((x * 8) + y)
     else:
         return int((x*8) + (7-y))
@@ -98,55 +87,56 @@ def indexOf(x,y):
     
         
 # checks if n is even
-def isEven(n):
+def is_even(n):
     if(n%2 == 0):
         return True
     else:
         return False
 
-"""
+
 #print str, scrolling through colors
-def rainbowPrint(str):
+def rainbow_print(str):
     global cursorx
     global cursory
+    
     while True:
-        for color in range(1, 255):
-            cursorx, cursory = (1,1)
-            printStr(str, wheel(color))
+        for degree in range(1, 255):
+            cursorx, cursory = (0,1)
+            print_str(str, wheel(degree))
             strip.show()
-"""
 
 
-def printChar(char):
+
+def print_char(char):
     global cursorx
     
-    charHeight = len( char_dict[char] )
-    charLength = len( char_dict[char][0] )
+    char_height = len( char_dict[char] )
+    char_length = len( char_dict[char][0] )
     
-    for i in range(0, charHeight):
-        for j in range(0, charLength):
-            if char_dict[char][i][j] == 1 and cursorx+j < MATRIX_LENGTH:
-                strip[ indexOf(cursorx+j,cursory+i) ] = COLOR
+    for i in range(0, char_height):
+        for j in range(0, char_length):
+            if char_dict[char][i][j] == 1 and cursorx +j < MATRIX_LENGTH:
+                strip[ index_of(cursorx+j,cursory+i) ] = COLOR
                 
-    cursorx = cursorx + charLength + 1 #move cursorx
+    cursorx = cursorx + char_length + 1 #move cursorx
 
-def printStr(str, color):
-    global COLOR
-    COLOR = color
-    printStr(str)
-
-def printStr(str):
+def print_str(str, color = None):
+    if color is not None:
+        global COLOR
+        COLOR = color
+    
     for char in str:
         if(char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '):
-            printChar(char)
+            print_char(char)
         else:
-            printChar('null')
+            print_char('null')
+    
     
 
 
 
 def main():
-    printStr("HI SUNNY")
+    rainbow_print("HI SUNNY")
     if cursorx < MATRIX_LENGTH:
         strip[ indexOf(cursorx, cursory) ] = BLUE
     strip.show()
