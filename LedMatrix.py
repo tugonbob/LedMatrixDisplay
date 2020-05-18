@@ -24,6 +24,7 @@ strip = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=.02, auto_write=Fals
         
 
 #colors
+OFF = (0,0,0)
 RED = (255,0,0)
 GREEN = (0,255,0)
 BLUE = (0,0,255)
@@ -63,8 +64,9 @@ COLOR = RED
 #constants
 MATRIX_HEIGHT = 8
 MATRIX_LENGTH = 32
-LEFT_ALIGN = 0
-CENTER_ALIGN = 1
+LEFT_ALIGN = "LEFT"
+CENTER_ALIGN = "CENTER"
+CHAR_LIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890:'
 
 # converts a ledstrip index to a coord
 def coord_of(pos):
@@ -94,14 +96,17 @@ def is_even(n):
     else:
         return False
 
+
+#counts how many pixels there are of a length of the string
 def pixel_length(str):
     total_length = 0
     
     for char in str:
-        if char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ':
+        if char in CHAR_LIST:
             char_length = len( char_dict[char][0] )
             total_length += char_length + 1
     return total_length -1
+
 
 #print str, scrolling through colors
 def rainbow_print(str):
@@ -112,8 +117,25 @@ def rainbow_print(str):
         for degree in range(1, 255):
             cursorx, cursory = (0,1)
             print_str(str, wheel(degree))
-            strip.show()
 
+
+#scrolling print
+#todo: loop the text
+#need help on the parameters
+#like what if I want to call marquee_print(str, color)
+def marquee_print(str, speed = None, color = None):
+    if color is not None:
+        global COLOR
+        COLOR = color
+    
+    if speed is None:
+        speed = .04
+    
+    for x in range(32, 0-pixel_length(str), -1):
+        output_str(str, x, cursory, COLOR)
+        time.sleep(speed)
+        
+    
 
 
 def print_char(char):
@@ -122,50 +144,78 @@ def print_char(char):
     char_height = len( char_dict[char] )
     char_length = len( char_dict[char][0] )
     
-    for i in range(0, char_height):
-        for j in range(0, char_length):
-            if char_dict[char][i][j] == 1 and cursorx +j < MATRIX_LENGTH and cursorx +j >= 0:
-                strip[ index_of(cursorx+j,cursory+i) ] = COLOR
+    for i in range(0, char_height): #loop y
+        for j in range(0, char_length): #loop x
+            if cursorx +j < MATRIX_LENGTH and cursorx +j >= 0: #check x bounds
+                if cursory +i < MATRIX_HEIGHT and cursory +i >= 0: #check y bounds
+                    if char_dict[char][i][j] == 1:
+                        strip[ index_of(cursorx+j,cursory+i) ] = COLOR
+                    else:
+                        strip[ index_of(cursorx+j, cursory+i) ] = OFF #erase led's that are ON from previous print
                 
-    cursorx = cursorx + char_length + 1 #move cursorx
+    cursorx = cursorx + char_length #move cursorx
+
 
 def print_str(str, color = None, align = None):
+    global cursorx
+    
     if color is not None:
         global COLOR
         COLOR = color
         
+
     if align is None:
         align = CENTER_ALIGN
         
-    global cursorx
+    
+    
+    
+    #change cursorx to reflect alignment
     if align == LEFT_ALIGN:
         cursorx = 0
+        
     elif align == CENTER_ALIGN:
         pixel_len = pixel_length(str)
+        cursorx = int( (MATRIX_LENGTH - pixel_len) / 2 ) #find equal distance between edges and str
         
-        cursorx = int( (MATRIX_LENGTH - pixel_len) / 2 )
-        
-            
     
     for char in str:
-        if char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ':
+        if char in CHAR_LIST:
             print_char(char)
         else:
             print_char('null')
+    strip.show()
+            
+
+#print str at a specific x and y
+def output_str(str, x, y, color = None):
+    if color is not None:
+        global COLOR
+        COLOR = color
+    
+    global cursorx,cursory
+    cursorx = x
+    cursory = y
+    
+    for char in str:
+        if char in CHAR_LIST:
+            print_char(char)
+        else:
+            print_char('null')
+        
+    strip.show()
+    
+            
     
 
 
 
 def main():
-    #rainbow_print("HI ARIEL")
-    print_str("UUUUU")
+    marquee_print("HELLO", .01)
     if cursorx < MATRIX_LENGTH and cursorx > 0:
         strip[ index_of(cursorx, cursory) ] = BLUE
-    
-    
-    #strip.fill((0,0,0))
-
-    strip.show()
+        
+        
     
 if(__name__ == "__main__"):
     main()
