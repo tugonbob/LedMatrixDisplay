@@ -4,7 +4,6 @@ import neopixel
 import board
 import time
 from characterDictionary import char_dict
-import Color
 
 pixel_pin = board.D18
 num_pixels = 256
@@ -64,6 +63,8 @@ COLOR = RED
 #constants
 MATRIX_HEIGHT = 8
 MATRIX_LENGTH = 32
+LEFT_ALIGN = 0
+CENTER_ALIGN = 1
 
 # converts a ledstrip index to a coord
 def coord_of(pos):
@@ -93,6 +94,14 @@ def is_even(n):
     else:
         return False
 
+def pixel_length(str):
+    total_length = 0
+    
+    for char in str:
+        if char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ':
+            char_length = len( char_dict[char][0] )
+            total_length += char_length + 1
+    return total_length -1
 
 #print str, scrolling through colors
 def rainbow_print(str):
@@ -115,32 +124,48 @@ def print_char(char):
     
     for i in range(0, char_height):
         for j in range(0, char_length):
-            if char_dict[char][i][j] == 1 and cursorx +j < MATRIX_LENGTH:
+            if char_dict[char][i][j] == 1 and cursorx +j < MATRIX_LENGTH and cursorx +j >= 0:
                 strip[ index_of(cursorx+j,cursory+i) ] = COLOR
                 
     cursorx = cursorx + char_length + 1 #move cursorx
 
-def print_str(str, color = None):
+def print_str(str, color = None, align = None):
     if color is not None:
         global COLOR
         COLOR = color
+        
+    if align is None:
+        align = CENTER_ALIGN
+        
+    global cursorx
+    if align == LEFT_ALIGN:
+        cursorx = 0
+    elif align == CENTER_ALIGN:
+        pixel_len = pixel_length(str)
+        
+        cursorx = int( (MATRIX_LENGTH - pixel_len) / 2 )
+        
+            
     
     for char in str:
-        if(char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '):
+        if char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ':
             print_char(char)
         else:
             print_char('null')
-    
     
 
 
 
 def main():
-    rainbow_print("HI SUNNY")
-    if cursorx < MATRIX_LENGTH:
-        strip[ indexOf(cursorx, cursory) ] = BLUE
-    strip.show()
+    #rainbow_print("HI ARIEL")
+    print_str("UUUUU")
+    if cursorx < MATRIX_LENGTH and cursorx > 0:
+        strip[ index_of(cursorx, cursory) ] = BLUE
+    
+    
+    #strip.fill((0,0,0))
 
+    strip.show()
     
 if(__name__ == "__main__"):
     main()
