@@ -16,7 +16,7 @@ import neopixel
 import board
 import time
 from characterDictionary import char_dict
-from CircularQueueClass import CircularQueue
+#from CircularQueueClass import CircularQueue
 
 pixel_pin = board.D18
 num_pixels = 256
@@ -37,6 +37,7 @@ PINK = (255,0,100)
 #global variables
 cursorx = 0
 cursory = 0
+COLOR = RED
 
 #constants
 MATRIX_HEIGHT = 8
@@ -44,6 +45,10 @@ MATRIX_LENGTH = 32
 LEFT = "LEFT"
 CENTER = "CENTER"
 CHAR_LIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890 ?!&.,()_:;% @#$^*+-=[]{}|\'\"/<>~'
+
+####################
+#  UTIL FUNCTIONS  #
+####################
 
 # converts a ledstrip index to a coord
 def coord_of(pos):
@@ -65,11 +70,23 @@ def index_of(x, y):
 def pixel_length(str):
     total_length = 0
 
+    color_change_found = False
     for char in str:
+        if (char == '`'): #check for color change symbolized by '`' followed by a char
+            color_change_found = True
+            continue
+        if (color_change_found == True):
+            color_change_found = False
+            continue
+        
         if(char in CHAR_LIST):
             char_length = len(char_dict[char][0])
             total_length += char_length
     return total_length - 1
+
+#####################
+#  COLOR FUNCTIONS  #
+#####################
 
 # color wheel
 def wheel(pos):
@@ -93,6 +110,28 @@ def wheel(pos):
         b = int(255 - pos * 3)
     return (r, g, b)
 
+#Detects color change in a str
+def color_change(char):
+    global COLOR
+    if (char == 'b'):
+        COLOR = BLUE
+    elif (char == 'g'):
+        COLOR = GREEN
+    elif (char == 'y'):
+        COLOR = YELLOW
+    elif (char == 'o'):
+        COLOR = ORANGE
+    elif (char == 'p'):
+        COLOR = PURPLE
+    elif (char == 'c'):
+        COLOR = CYAN
+    else: #Default color
+        COLOR = RED
+
+#####################
+#  PRINT FUNCTIONS  #
+#####################
+
 # print a single character
 def print_char(char, color):
     global cursorx
@@ -110,31 +149,41 @@ def print_char(char, color):
     cursorx = cursorx + char_length #move cursorx
 
 # print str at a specific x and y
-def print_str(str, color, x, y = None):
+def print_str(str, x, y = None):
     global cursorx, cursory
     cursorx = x
     if(y is not None):
         cursory = y
-
+    
+    color_change_found = False #flag to remember if there is a '`' signifying color change in the next char
     for char in str:
+        if(char == '`'): #skip '`'
+            color_change_found = True
+            continue
+        if (color_change_found == True): #skip char after '`'
+            color_change(char)
+            color_change_found = False
+            continue
+
         if(char in CHAR_LIST):
-            print_char(char, color)
+            print_char(char, COLOR)
         else:
-            print_char('null', color)
+            print_char('null', COLOR)
     strip.show()
 
 # print a string using given alignment
-def align_print(str, color, align):
+def align_print(str, align):
     if(align == LEFT):
         # change cursorx to reflect alignment
         x = 0
-        print_str(str, color, x, 0)
+        print_str(str, x, 0)
     else:
         # use CENTER_ALIGN
         pixel_len = pixel_length(str)
         x = int((MATRIX_LENGTH - pixel_len) / 2) # find equal distance between edges and str
-        print_str(str, color, x, 0)
+        print_str(str, x, 0)
 
+""" broken function
 # print str, scrolling through colors
 def rainbow_print(str):
     global cursorx
@@ -143,18 +192,34 @@ def rainbow_print(str):
     while True:
         for color in range(1, 255):
             align_print(str, wheel(color), CENTER)
+"""
 
 # scrolling print
-# todo: loop the text
-def marquee_print(str, color, speed = None):
+def marquee_print(str, speed = None):
     if(speed is None):
-        speed = .04
+        speed = .02
     for x in range(32, -1 - pixel_length(str), -1): #decrement x till off matrix edge
-        print_str(str, color, x, None)
+        print_str(str, x, None)
         time.sleep(speed)
+
+def clear_matrix():
+    strip.fill(OFF)
+    strip.show()
+
 
 # Main method
 if(__name__ == "__main__"):
-    if(cursorx < MATRIX_LENGTH and cursorx > 0):
-        strip[index_of(cursorx, cursory)] = BLUE
-    strip.show()
+    while True:
+        marquee_print("`rSPY $291.83 < 1.03%    " + "`gINTC $60.10 > 0.62%    " + "`rTSLA $809.75 < 0.69%    " + "`rMSFT $183.35 < 0.69%")
+        time.sleep(1)
+        
+        align_print("`r78\"F", CENTER)
+        time.sleep(5)
+        clear_matrix()
+        
+        marquee_print("`rPreceipitation: 15%  ")
+        time.sleep(1)
+        
+        align_print("5:48", CENTER)
+        time.sleep(5)
+        clear_matrix()
