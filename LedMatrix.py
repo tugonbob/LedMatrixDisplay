@@ -1,22 +1,24 @@
 '''
 Code for for an LED matrix
-# 32 x 8 led matrix. Works like a snaking led strip
-# index of led strip
-# 0 15 16 31 32 47 48 63 64 79 80 95 96  111 112 127 128 143 144 159 160 175 176 191 192 207 208 223 224 239 240 255
-# 1 14 17 30  v  ^  v  ^  v  ^  v  ^  v   ^   v   ^   v   ^   v   ^   v   ^   v   ^   v   ^   v   ^    v   ^   v   ^
-# 2 13 18 29
-# 3 12 19 28
-# 4 11 20 27
-# 5 10 21 26
-# 6 9  22 25
-# 7 8  23 24 39 40 55 56 71 72 87 88 103 104 119 120 135 136 151 152 167 168 183 184 199 200 215 216 231 232 247 248
+32 x 8 led matrix. Works like a snaking led strip
+index of led strip
+0 15 16 31 32 47 48 63 64 79 80 95 96  111 112 127 128 143 144 159 160 175 176 191 192 207 208 223 224 239 240 255
+1 14 17 30  v  ^  v  ^  v  ^  v  ^  v   ^   v   ^   v   ^   v   ^   v   ^   v   ^   v   ^   v   ^    v   ^   v   ^
+2 13 18 29
+3 12 19 28
+4 11 20 27
+5 10 21 26
+6 9  22 25
+7 8  23 24 39 40 55 56 71 72 87 88 103 104 119 120 135 136 151 152 167 168 183 184 199 200 215 216 231 232 247 248
 '''
 
 import neopixel
 import board
 import time
 from characterDictionary import char_dict
-#from CircularQueueClass import CircularQueue
+import OpenWeatherAPI
+import FinnhubAPI
+#todo: time API
 
 pixel_pin = board.D18
 num_pixels = 256
@@ -42,15 +44,13 @@ COLOR = RED
 #constants
 MATRIX_HEIGHT = 8
 MATRIX_LENGTH = 32
-LEFT = "LEFT"
-CENTER = "CENTER"
 CHAR_LIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890 ?!&.,()_:;% @#$^*+-=[]{}|\'\"/<>~'
 
 ####################
 #  UTIL FUNCTIONS  #
 ####################
 
-# converts a ledstrip index to a coord
+# converts a ledstrip index to a coord #not used
 def coord_of(pos):
     x = int(pos // 8)
     if (x % 2 == 0):
@@ -74,10 +74,10 @@ def pixel_length(str):
     for char in str:
         if (char == '`'): #check for color change symbolized by '`' followed by a char
             color_change_found = True
-            continue
+            continue #skip '`' char
         if (color_change_found == True):
             color_change_found = False
-            continue
+            continue # skip color char
         
         if(char in CHAR_LIST):
             char_length = len(char_dict[char][0])
@@ -88,7 +88,7 @@ def pixel_length(str):
 #  COLOR FUNCTIONS  #
 #####################
 
-# color wheel
+# color wheel #not used unless I fix rainbow_print()
 def wheel(pos):
     # Input a value 0 to 255 to get a color value.
     # The colours are a transition r - g - b - back to r.
@@ -161,19 +161,19 @@ def print_str(str, x, y = None):
             color_change_found = True
             continue
         if (color_change_found == True): #skip char after '`'
-            color_change(char)
+            color_change(char) #change color
             color_change_found = False
             continue
 
-        if(char in CHAR_LIST):
+        if(char in CHAR_LIST): #if valid char
             print_char(char, COLOR)
-        else:
+        else: #print null
             print_char('null', COLOR)
     strip.show()
 
 # print a string using given alignment
 def align_print(str, align):
-    if(align == LEFT):
+    if(align == "LEFT"):
         # change cursorx to reflect alignment
         x = 0
         print_str(str, x, 0)
@@ -198,28 +198,26 @@ def rainbow_print(str):
 def marquee_print(str, speed = None):
     if(speed is None):
         speed = .02
-    for x in range(32, -1 - pixel_length(str), -1): #decrement x till off matrix edge
+    for x in range(32, -1 - pixel_length(str), -1): #decrement x till chars are off matrix edge
         print_str(str, x, None)
         time.sleep(speed)
 
+#turn off all leds
 def clear_matrix():
     strip.fill(OFF)
     strip.show()
 
 
+
+
 # Main method
 if(__name__ == "__main__"):
-    while True:
-        marquee_print("`rSPY $291.83 < 1.03%    " + "`gINTC $60.10 > 0.62%    " + "`rTSLA $809.75 < 0.69%    " + "`rMSFT $183.35 < 0.69%")
-        time.sleep(1)
-        
-        align_print("`r78\"F", CENTER)
-        time.sleep(5)
-        clear_matrix()
-        
-        marquee_print("`rPreceipitation: 15%  ")
-        time.sleep(1)
-        
-        align_print("5:48", CENTER)
-        time.sleep(5)
-        clear_matrix()
+    #todo: parallel processing to get stock info while other things are displaying 
+    align_print( str(OpenWeatherAPI.get_temp("Houston")), "CENTER" )
+    time.sleep(1)
+    clear_matrix()
+    
+    marquee_print( str(OpenWeatherAPI.get_weather("Houston")) )
+    time.sleep(1)
+    
+    marquee_print( str(FinnhubAPI.get_stock_info()) )
