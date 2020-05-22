@@ -1,3 +1,4 @@
+<pre>
 # LedMatrixDisplay
 LED time, weather, and stock market Display
 
@@ -25,8 +26,8 @@ Parts that I used: (These may not be the cheapest options out there. I bought th
       link: https://www.amazon.com/gp/product/B01DC0IPVU/ref=ppx_yo_dt_b_asin_title_o00_s01?ie=UTF8&psc=1
 
 APIs Used:
-  For weather: openweathermap.org/api
-  For stock market info: finnhub.io
+	For weather: openweathermap.org/api
+	For stock market info: finnhub.io
   
   
-        
+</pre>
