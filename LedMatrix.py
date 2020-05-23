@@ -16,9 +16,11 @@ import neopixel
 import board
 import time
 from characterDictionary import char_dict
+from EmojiDictionary import emoji_dict
 import OpenWeatherAPI
 import FinnhubAPI
-#todo: time API
+import datetime
+
 
 pixel_pin = board.D18
 num_pixels = 256
@@ -50,7 +52,7 @@ CHAR_LIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890 ?!&.
 #  UTIL FUNCTIONS  #
 ####################
 
-# converts a ledstrip index to a coord #not used
+# converts a ledstrip index to a coord
 def coord_of(pos):
     x = int(pos // 8)
     if (x % 2 == 0):
@@ -59,7 +61,7 @@ def coord_of(pos):
         y = int(8 - (pos % 8))
     return(x,y)
 
-# converts a coord to a ledstrip index
+# converts a coord to a ledstrip index #function not used
 def index_of(x, y):
     if(x % 2 == 0):
         return int((x * 8) + y)
@@ -70,19 +72,56 @@ def index_of(x, y):
 def pixel_length(str):
     total_length = 0
 
-    color_change_found = False
+    escape_found = False
+    escape_string = ""
     for char in str:
-        if (char == '`'): #check for color change symbolized by '`' followed by a char
-            color_change_found = True
-            continue #skip '`' char
-        if (color_change_found == True):
-            color_change_found = False
-            continue # skip color char
+        if (escape_found == False and char == '`'): #check for color change symbolized by opening '`', followed by a char, followed by closing '`'
+            escape_found = True
+            continue #skip opening '`' char
+        if (escape_found == True and char != '`'):
+            escape_string = escape_string + char
+            continue #skip everything in between two '`'
+        if (escape_found == True and char == '`'):
+            escape_found = False
+            total_length += get_escape_pixel_length(escape_string)
+            escape_string = ""
+            continue #skip closing '`'
         
         if(char in CHAR_LIST):
             char_length = len(char_dict[char][0])
             total_length += char_length
     return total_length - 1
+
+#turn off all leds
+def clear_matrix():
+    strip.fill(OFF)
+    strip.show()
+    
+#takes escape string and does the respective action
+def handle_escape(str):
+    global COLOR
+    if (str == 'b'):
+        COLOR = BLUE
+    elif (str == 'g'):
+        COLOR = GREEN
+    elif (str == 'y'):
+        COLOR = YELLOW
+    elif (str == 'o'):
+        COLOR = ORANGE
+    elif (str == 'p'):
+        COLOR = PURPLE
+    elif (str == 'c'):
+        COLOR = CYAN
+    elif (str == 'r'):
+        COLOR = RED
+    elif (str == ':)'):
+        emoji_print(':)')
+        
+def get_escape_pixel_length(str):
+    if (str == ':)'):
+        return len(emoji_dict[':)'][0])
+    else:
+        return 0
 
 #####################
 #  COLOR FUNCTIONS  #
@@ -110,24 +149,6 @@ def wheel(pos):
         b = int(255 - pos * 3)
     return (r, g, b)
 
-#Detects color change in a str
-def color_change(char):
-    global COLOR
-    if (char == 'b'):
-        COLOR = BLUE
-    elif (char == 'g'):
-        COLOR = GREEN
-    elif (char == 'y'):
-        COLOR = YELLOW
-    elif (char == 'o'):
-        COLOR = ORANGE
-    elif (char == 'p'):
-        COLOR = PURPLE
-    elif (char == 'c'):
-        COLOR = CYAN
-    else: #Default color
-        COLOR = RED
-
 #####################
 #  PRINT FUNCTIONS  #
 #####################
@@ -138,32 +159,37 @@ def print_char(char, color):
     char_height = len(char_dict[char])
     char_length = len(char_dict[char][0])
     
-    for i in range(0, char_height): # loop y
-        for j in range(0, char_length): # loop x
-            if(cursorx + j < MATRIX_LENGTH and cursorx + j >= 0): # check x bounds
-                if(cursory + i < MATRIX_HEIGHT and cursory + i >= 0): # check y bounds
-                    if(char_dict[char][i][j] == 1):
-                        strip[index_of(cursorx + j,cursory + i)] = color
+    for y in range(0, char_height): # loop y
+        for x in range(0, char_length): # loop x
+            if(cursorx + x < MATRIX_LENGTH and cursorx + x >= 0): # check x bounds
+                if(cursory + y < MATRIX_HEIGHT and cursory + y >= 0): # check y bounds
+                    if(char_dict[char][y][x] == 1):
+                        strip[index_of(cursorx + x, cursory + y)] = color
                     else:
-                        strip[index_of(cursorx + j, cursory + i)] = OFF # erase led's that are ON from previous print
+                        strip[index_of(cursorx + x, cursory + y)] = OFF # erase led's that are ON from previous print
     cursorx = cursorx + char_length #move cursorx
 
 # print str at a specific x and y
-def print_str(str, x, y = None):
+def print_str(str, x, y):
     global cursorx, cursory
     cursorx = x
-    if(y is not None):
-        cursory = y
+    cursory = y
     
-    color_change_found = False #flag to remember if there is a '`' signifying color change in the next char
+    escape_found = False #flag to remember if there is a '`' signifying escape string between two '`'
+    escape_string = "" #to build the string between '`'
     for char in str:
-        if(char == '`'): #skip '`'
-            color_change_found = True
+        if (escape_found == False and char == '`'): #skip opening '`'
+            escape_found = True
             continue
-        if (color_change_found == True): #skip char after '`'
-            color_change(char) #change color
-            color_change_found = False
+        if (escape_found == True and char != '`'): #skip chars between '`'
+            escape_string = escape_string + char #build escape_string
             continue
+        if (escape_found == True and char == '`'):
+            handle_escape(escape_string)
+            escape_found = False
+            escape_string = ""
+            continue
+        
 
         if(char in CHAR_LIST): #if valid char
             print_char(char, COLOR)
@@ -196,28 +222,92 @@ def rainbow_print(str):
 
 # scrolling print
 def marquee_print(str, speed = None):
+    global cursory
+    cursory = 1
     if(speed is None):
-        speed = .02
+        speed = .01
     for x in range(32, -1 - pixel_length(str), -1): #decrement x till chars are off matrix edge
-        print_str(str, x, None)
+        print_str(str, x, 0)
         time.sleep(speed)
 
-#turn off all leds
-def clear_matrix():
-    strip.fill(OFF)
-    strip.show()
+#display an emoji in emoji_dict
+def emoji_print(str):
+    global cursorx
+    global cursory
+    cursory = 0
+    emoji_height = len(emoji_dict[str])
+    emoji_length = len(emoji_dict[str][0])
+    
+    for y in range(0, emoji_height): #loop y
+        for x in range(0, emoji_length): #loop x
+            if(cursorx + x < MATRIX_LENGTH and cursorx + x >= 0): # check x bounds
+                if(cursory + y < MATRIX_HEIGHT and cursory + y >= 0): # check y bounds
+                    if (emoji_dict[str][y][x] == 'y'):
+                        strip[index_of(cursorx + x, cursory + y)] = YELLOW
+                    elif (emoji_dict[str][y][x] == 'r'):
+                        strip[index_of(cursorx + x, cursory + y)] = RED
+                    elif (emoji_dict[str][y][x] == 'p'):
+                        strip[index_of(cursorx + x, cursory + y)] = PINK
+                    elif (emoji_dict[str][y][x] == '0'):
+                        strip[index_of(cursorx + x, cursory + y)] = OFF
+    cursorx = cursorx + emoji_length #move cursorx
+                    
+    
+    
+    
+
+#########################
+#  TIME DATE FUNCTIONS  #
+#########################
+
+# HH:MM AM/PM
+def display_time():
+    clear_matrix()
+    #store time info into easy to read variables
+    now = datetime.datetime.today()
+    if (now.hour > 12):
+        hour = now.hour - 12
+        AMPM = "PM"
+    else:
+        hour = now.hour
+        AMPM = "AM"
+    minute = now.minute
+    second = now.second
+        
+    while True:
+        #if else to space the hour, minute, AMPM correctly
+        if (len(str(minute)) == 1): #if minute is 1 digit
+            align_print("`r`" + str(hour) + ":0" + str(minute) + AMPM, "CENTER")
+        else: #if minute is 2 digit
+            align_print("`r`" + str(hour) + ":"+ str(minute) + AMPM, "CENTER")
+        
+        #move clock
+        second = second + 1
+        time.sleep(1)
+        if (second == 60):
+            second = 0
+            minute = minute + 1
+
+#MM.DD   no year, 1 pixel off from fitting
+def display_date():
+    clear_matrix()
+    #store time info into easy to read variables
+    now = datetime.datetime.today()
+    year = str(now.year)[-2:] #last 2 digits of year
+    month = str(now.month)
+    day = str(now.day)
+    
+    align_print("`r`" + month + " / " + day, "CENTER")
+
 
 
 
 
 # Main method
 if(__name__ == "__main__"):
-    #todo: parallel processing to get stock info while other things are displaying 
-    align_print( str(OpenWeatherAPI.get_temp("Houston")), "CENTER" )
-    time.sleep(1)
-    clear_matrix()
-    
-    marquee_print( str(OpenWeatherAPI.get_weather("Houston")) )
-    time.sleep(1)
-    
-    marquee_print( str(FinnhubAPI.get_stock_info()) )
+    #todo: parallel processing to get stock info while other things are displaying
+
+    marquee_print( "`y`Mama is`r` the best!`:)`", .02) #works!
+        
+    #marquee_print( str(FinnhubAPI.get_stock_news()) )
+    #marquee_print( str(FinnhubAPI.get_stock_info()) )
